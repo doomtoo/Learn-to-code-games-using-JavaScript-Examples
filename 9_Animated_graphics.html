@@ -1,0 +1,1100 @@
+<html>
+<head>
+    <style>
+    *
+    {
+        margin:0;
+        padding:0;
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+    }
+    canvas
+    {
+        display: block;
+    }
+
+    #game_container
+    {
+        position: relative;
+        display: inline-block;
+    }
+    #fps
+    {
+        position: absolute;
+        top:10px;
+        right:10px;
+        color:white;
+        font-weight: 900;
+        font-size: 20px;
+        text-shadow:2px 2px 0 black,
+            2px -2px 0 black,  
+            -2px -2px 0 black,
+            -2px 2px 0 black;
+        pointer-events: none;
+    }
+    </style>            
+</head>
+
+<body>
+<div id="game_container">
+<canvas></canvas>
+    <p id="fps">120</p>
+</div>
+        
+
+<script>
+    
+    class Friend
+    {
+        constructor(their_name, their_age, their_loves_spinach, their_eye_color, their_skin_color, their_hair_color, their_x_pos, their_y_pos)
+        {
+            this.name = their_name;
+            this.age = their_age;
+            this.loves_spinach = their_loves_spinach;
+
+            this.eye_color = their_eye_color;
+            this.skin_color = their_skin_color;
+            this.hair_color = their_hair_color;
+
+            this.x_pos = their_x_pos;
+            this.y_pos = their_y_pos
+
+            //for moving
+            this.x_dest=0;
+            this.y_dest=0;
+            this.moving_x=false;
+            this.moving_y=false;
+            this.move_speed= 0.2;
+
+
+            console.log("A friend was created, with name: "+this.name+", age: "+this.age+", and loves spinach: "+this.loves_spinach);
+            console.log("And some facts about them, eye color: "+this.eye_color+", skin color: "+this.skin_color+", hair color: "+this.hair_color+", x and y: "+this.x_pos+", "+this.y_pos);
+
+            this.DrawFriend();
+        }
+
+        SayHi()
+        {
+            console.log("Hi, my name is "+this.name +", my age is: "+this.age+", and do I love spinach? "+this.loves_spinach+".");
+        }
+
+        SetDestination(x_dest, y_dest)
+        {
+            this.x_dest=x_dest;
+            this.y_dest=y_dest;
+
+            this.moving_x=true;
+            this.moving_y=true;
+        }
+
+        DrawFriend()
+        {
+            //this is where we will start drawing our friend
+
+            //---------------- get the canvas stuff we need to be able to draw ----------------
+            let my_canvas = document.querySelector("canvas");
+            let draw_context = my_canvas.getContext("2d");
+            let ctx = draw_context;
+
+            //---------------- draw the head ----------------
+
+            //define width and height of the head
+            let width_head = 50;
+            let height_head = 60;
+
+            ctx.fillStyle = this.skin_color;
+            ctx.fillRect(this.x_pos, this.y_pos, width_head, height_head);
+
+            //---------------- draw the eyes ----------------
+
+            //define width and height of the eyes
+            let width_eyes = 10;
+            let height_eyes = 15;
+
+            //set the fill style:
+            ctx.fillStyle = this.eye_color;
+
+            //define how offset the eyes should be from the left and right side of the head
+            let eye_x_offset = 10;
+
+            //define how offset the eyes should be from the top of the head
+            let eye_y_offset = 15;
+
+            //--draw the left eye, left corner, top , width and height --
+            ctx.fillRect(this.x_pos+eye_x_offset, this.y_pos+eye_y_offset, width_eyes, height_eyes);
+
+            //--draw the right eye--
+            //a lot more complicated- have to find right side of head (x_pos+width_head), then minus out the width of eye + x offset of eye to position the left side of the eye away from the right side of the head
+
+            let right_side_of_head=this.x_pos+width_head
+            let right_eye_x_pos = right_side_of_head - width_eyes-eye_x_offset;
+
+            ctx.fillRect(right_eye_x_pos, this.y_pos+eye_y_offset , width_eyes, height_eyes);
+        }
+
+        Update(delta_ms)
+        {
+            this.MoveToDest(delta_ms);
+        }
+
+        MoveToDest(delta_ms)
+        {
+            if(this.moving_x)
+            {
+                if(this.x_dest>this.x_pos)
+                {
+                    this.x_pos+=this.move_speed*delta_ms;
+
+                    if(this.x_pos>=this.x_dest)
+                    {
+                        this.x_pos=this.x_dest;
+                        this.moving_x=false;
+                    }
+                }
+                else //x_dest < x_pos -so need to move to the left/ -x
+                {
+                    this.x_pos-=this.move_speed*delta_ms;
+
+                    if(this.x_pos<=this.x_dest)
+                    {
+                        this.x_pos=this.x_dest;
+                        this.moving_x=false;
+                    }
+                }
+            }
+
+            if(this.moving_y)
+            {
+                if(this.y_dest>this.y_pos) // if dest is greater, move him down, where y increases
+                {
+                    this.y_pos+=this.move_speed*delta_ms;
+
+                    if(this.y_pos>=this.y_dest)
+                    {
+                        this.y_pos=this.y_dest;
+                        this.moving_y=false;
+                    }
+                }
+                else //y_dest < y_pos -so need to move upward/ -y
+                {
+                    this.y_pos-=this.move_speed*delta_ms;
+
+                    if(this.y_pos<=this.y_dest)
+                    {
+                        this.y_pos=this.y_dest;
+                    this.moving_y=false;
+                    }
+                }
+            }
+        }
+    }//end of Friend class
+
+    class TileImageCreator
+    {
+        constructor()
+        {
+            //width, height, and image to store the dirt tile
+            this.width_tile= 64;
+            this.height_tile= 64;
+
+            this.dirt_tile= new Image();
+            this.stone_tile= new Image();
+            this.water_tile= new Image();
+            this.grass_tile= new Image();
+            this.bush_tile= new Image();
+
+            //canvas to create the tile images on
+            let tile_canvas = document.createElement('canvas');
+            tile_canvas.width = this.width_tile;
+            tile_canvas.height = this.height_tile;
+
+            let tile_ctx = tile_canvas.getContext('2d');
+
+            this.CreateDirtTileImage(tile_canvas, tile_ctx);
+            this.CreateStoneTileImage(tile_canvas, tile_ctx);
+            this.CreateWaterTileImage(tile_canvas, tile_ctx);
+            this.CreateGrassTileImage(tile_canvas, tile_ctx);
+            this.CreateBushTileImage(tile_canvas, tile_ctx);
+        }
+
+
+        CreateDirtTileImage(tile_canvas, tile_ctx)
+        {
+            //define colors we're going to be drawing with
+            let medium_brown = "rgb(99, 65, 5)"
+            let dark_brown = "rgb(61, 40, 2)"
+            let light_brown = "rgb(125, 75, 9)"
+
+            //draw the medium brown color over the entire image
+            tile_ctx.fillStyle = medium_brown;
+            tile_ctx.fillRect(0, 0, this.width_tile, this.height_tile);
+
+            //draw dark brown spots
+            tile_ctx.fillStyle = dark_brown;
+            tile_ctx.fillRect(0, 10, this.width_tile*.33, this.height_tile*.25);
+            tile_ctx.fillRect(40, 40, this.width_tile*.33, this.height_tile*.25);
+            tile_ctx.fillRect(25, 0, this.width_tile*.33, this.height_tile*.25);
+
+            //draw the light brown spots
+            tile_ctx.fillStyle = light_brown;
+            tile_ctx.fillRect(30, 50, this.width_tile*.1, this.height_tile*.1);          
+            tile_ctx.fillRect(60, 10, this.width_tile*.1, this.height_tile*.1);
+            tile_ctx.fillRect(0, 30, this.width_tile*.1, this.height_tile*.1);
+
+            //copy the drawing from the tile canvas to the dirt tile image
+            this.dirt_tile.src = tile_canvas.toDataURL("image/png");
+        }
+
+        CreateStoneTileImage(tile_canvas, tile_ctx)
+        {
+
+            //format for arc(angles in "radians"/ Math.PI):  arc(x, y, radius, startAngle, endAngle)
+            let ctx = tile_ctx;
+        // #path8902
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(145, 145, 145)';
+            ctx.strokeStyle = 'rgb(0, 0, 0)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(26.259351, 2.436401);
+            ctx.bezierCurveTo(20.537698, 2.244682, 7.201005, 6.603291, 1.088764, 23.347364);
+            ctx.bezierCurveTo(0.164719, 30.545345, 2.971184, 49.833056, 7.725955, 63.104766);
+            ctx.bezierCurveTo(23.233916, 63.318872, 52.417972, 64.297286, 55.041516, 63.104766);
+            ctx.bezierCurveTo(60.338343, 51.711711, 61.512815, 52.899955, 61.632822, 42.363643);
+            ctx.bezierCurveTo(56.002553, 27.503631, 49.261347, 8.617523, 26.259351, 2.436401);
+            ctx.fill();
+            ctx.stroke();
+            
+        // #path12107
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(194, 194, 194)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(26.140407, 2.529717);
+            ctx.bezierCurveTo(8.938332, 4.047547, 3.480977, 19.675919, 1.349182, 23.442043);
+            ctx.bezierCurveTo(1.220109, 23.670070, 1.544982, 24.081600, 1.802323, 24.075763);
+            ctx.bezierCurveTo(45.201030, 23.091445, 52.902576, 22.870841, 47.221381, 15.852893);
+            ctx.bezierCurveTo(41.487356, 8.769685, 28.260407, 2.975209, 26.140407, 2.529717);
+            ctx.fill();
+            
+        // #path13488
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(118, 118, 118)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(2.867012, 43.173834);
+            ctx.lineTo(33.054967, 39.126287);
+            ctx.lineTo(49.076507, 47.895972);
+            ctx.lineTo(55.041516, 63.104766);
+            ctx.lineTo(7.725955, 63.104766);
+            ctx.fill();
+            
+        // #path14810
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(82, 82, 82)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(59.701317, 38.451696);
+            ctx.lineTo(49.076507, 47.895972);
+            ctx.lineTo(55.041516, 63.104766);
+            ctx.lineTo(60.544556, 51.268928);
+            ctx.lineTo(61.632822, 42.363643);
+            ctx.fill();
+            
+        // #path15538
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(162, 162, 162)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(48.233268, 17.370722);
+            ctx.lineTo(33.729558, 23.273395);
+            ctx.bezierCurveTo(33.076527, 29.233484, 33.448479, 34.123069, 33.054967, 39.126287);
+            ctx.lineTo(49.076507, 47.895972);
+            ctx.lineTo(59.701317, 38.451696);
+            ctx.fill();
+            
+        // #path17944
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(89, 89, 89)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(6.914559, 12.648585);
+            ctx.lineTo(18.213962, 23.947986);
+            ctx.lineTo(11.636698, 42.161947);
+            ctx.lineTo(4.216195, 48.233268);
+            ctx.lineTo(1.686478, 33.223615);
+            ctx.lineTo(1.088764, 23.347364);
+            ctx.fill();
+            
+        // #path19438
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(248, 248, 248)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(6.973555, 13.095532);
+            ctx.lineTo(18.213962, 23.947986);
+            ctx.lineTo(33.549445, 23.633622);
+            ctx.lineTo(32.336180, 39.607631);
+            ctx.lineTo(48.536167, 48.436312);
+            ctx.lineTo(54.240798, 63.129934);
+            ctx.lineTo(55.041516, 63.104764);
+            ctx.lineTo(55.041516, 63.104764);
+            ctx.lineTo(49.602045, 47.820716);
+            ctx.lineTo(33.054967, 39.126287);
+            ctx.lineTo(34.436878, 22.895241);
+            ctx.lineTo(18.235225, 22.883774);
+            ctx.lineTo(7.454899, 12.288358);
+            ctx.fill();
+            
+        // #path23147
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(248, 248, 248)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(48.696415, 16.967058);
+            ctx.lineTo(33.838257, 23.006180);
+            ctx.lineTo(34.509270, 23.964771);
+            ctx.lineTo(48.792274, 17.542213);
+            ctx.fill();
+            
+        // #path23147-0
+            ctx.beginPath();
+            ctx.fillStyle = 'rgb(248, 248, 248)';
+            ctx.lineWidth = 1.000000;
+            ctx.lineCap = 'butt';
+            ctx.lineJoin = 'miter';
+            ctx.moveTo(59.816068, 38.151915);
+            ctx.lineTo(48.312979, 48.121260);
+            ctx.lineTo(49.942582, 48.888133);
+            ctx.lineTo(60.391223, 38.151916);
+            ctx.fill();
+
+            this.stone_tile.src = tile_canvas.toDataURL("image/png");
+        }
+
+
+        CreateWaterTileImage(tile_canvas, tile_ctx)
+        {
+            let medium_blue = "rgb(100, 100, 200)"
+            tile_ctx.fillStyle = medium_blue;
+            tile_ctx.fillRect(0, 0, this.width_tile, this.height_tile);
+            this.water_tile.src = tile_canvas.toDataURL("image/png");
+        }
+
+        CreateGrassTileImage(tile_canvas, tile_ctx)
+        {
+            let medium_green = "rgb(100, 200, 100)"
+            tile_ctx.fillStyle = medium_green;
+            tile_ctx.fillRect(0, 0, this.width_tile, this.height_tile);
+            this.grass_tile.src = tile_canvas.toDataURL("image/png");
+        }
+
+        CreateBushTileImage(tile_canvas, tile_ctx)
+        {
+            let dark_green = "rgb(0, 200, 0)"
+            tile_ctx.fillStyle = dark_green;
+            tile_ctx.fillRect(0, 0, this.width_tile, this.height_tile);
+            this.bush_tile.src = tile_canvas.toDataURL("image/png");
+        }
+
+        GetTileImage(type)
+        {
+            if(type==Tile.DIRT)
+                return this.dirt_tile;
+            else if(type==Tile.STONE)
+                return this.stone_tile;
+            else if(type==Tile.WATER)
+                return this.water_tile;
+            else if(type==Tile.GRASS)
+                return this.grass_tile;
+            else if(type==Tile.BUSH)
+                return this.bush_tile;
+        }
+
+    }//end of TileImageCreator class
+
+    class Tile
+    {
+        static width=64;
+        static height=64;
+
+        static DIRT = 0;
+        static STONE = 1;
+        static WATER = 2;
+        static GRASS = 3;
+        static BUSH = 4;    
+        static LAST_TYPE = 4; //to keep track of whatever the last tile type is, for picking a random tile
+
+        constructor(x, y, type, image)
+        {
+            //x and y position of the tile, to be able to draw it onscreen
+            this.x = x;
+            this.y = y;
+            this.type = type;
+            this.image = image;
+        }
+        Draw(ctx)
+        {
+            ctx.drawImage(this.image, this.x, this.y);
+        }
+
+    }//end of Tile class
+
+    class AssetLoader
+    {
+        constructor()
+        {
+            this.callback=null;
+            this.image_containers = new Array();
+        }
+
+        //put images in an array ready to be loaded
+        AddImageToQueue(name, src)
+        {
+            let img_container = new Object();
+            img_container.src=src;
+            img_container.name=name;
+            img_container.loaded=false;
+            img_container.image= new Image();
+
+            this.image_containers.push(img_container);
+        }
+
+        //load all the images in the queue, and pass a function that will run when all the images have loaded
+        LoadImages(callback)
+        {
+            this.callback=callback;
+
+            for (let i = 0; i < this.image_containers.length; i++) 
+            {
+                let img_container = this.image_containers[i];
+                img_container.image.src= img_container.src;//set the actual image type source, which will begin loading the image
+
+                let asset_loader= this;//hack to allow us to access "this" inside the below functions- otherwise "this" becomes the image that was loaded
+                img_container.image.onload = function(event) {asset_loader.ImageLoaded(img_container);};
+                img_container.image.onerror = function(error) {asset_loader.ImageError(img_container, error);};
+            }
+            console.log("loading images!");
+        }
+
+        ImageLoaded(img_container)
+        {
+            console.log("image loaded! ", img_container.src);
+            img_container.loaded=true;
+
+            if(this.CheckIfAllImagesLoaded())
+            {
+                console.log("all images loaded!");
+                this.callback();
+            }
+        }
+
+        ImageError(img_container, error)
+        {
+            console.log("Couldn't load an image, check above for an error, probably the wrong path", img_container.src, error);
+        }
+
+        CheckIfAllImagesLoaded()
+        {
+            let num_imgs_loaded=0;
+            for (let i = 0; i < this.image_containers.length; i++) 
+            {
+                let img_container = this.image_containers[i];
+                if(img_container.loaded)
+                    num_imgs_loaded++;
+            }
+
+            if(num_imgs_loaded == this.image_containers.length)
+                return true;
+            else
+                return false;
+        }
+
+        GetImage(name)
+        {
+            for (let i = 0; i < this.image_containers.length; i++) 
+            {
+                let img_container = this.image_containers[i];
+
+                if(img_container.name==name)
+                    return img_container;
+            }
+            return null;
+        }
+
+
+    }//end of class AssetLoader
+
+    class Level
+    {
+        constructor(tile_images)
+        {
+            this.tile_images = tile_images;
+        }
+    }//end of class Level
+
+
+    //for drawing debug squares around srites, animations, etc
+    class DebugBox
+    {
+        constructor()
+        {
+        }
+        DrawDebugBox(ctx, x, y, width, height, thickness, color)
+        {
+            ctx.fillStyle = color;
+            
+            ctx.fillRect(x, y, width, thickness);//top
+            ctx.fillRect(x, y+height-thickness, width, thickness);//bottom
+            ctx.fillRect(x, y, thickness, height);//left
+            ctx.fillRect(x+width-thickness, y, thickness, height);//right
+        }
+    }
+
+    class Sprite
+    {
+        constructor(x,y, width, height, image)
+        {
+            this.x=x;
+            this.y=y;
+
+            if(width==undefined)
+                width=Tile.width;
+            if(height==undefined)
+                height=Tile.height;
+            
+            this.width=width;
+            this.height=height;
+
+            this.image=image;
+            this.animations = new Array();
+            this.curr_anim=0;
+            this.flip_x=false;
+        }
+
+        Draw(ctx, delta_ms)
+        {
+            if(this.image!=undefined)
+                ctx.drawImage(this.image, this.x, this.y);
+            
+            if(this.animations.length>0)
+            {
+                this.animations[this.curr_anim].Draw(ctx, delta_ms, this.x, this.y, this.flip_x);
+            }
+        }
+    }//end of class Sprite
+
+    class Entity extends Sprite
+    {
+        static DIRECTION = {UP:0, DOWN:1, LEFT:2, RIGHT:3};
+        static STATE = {IDLE:0, WALKING:1, RUNNING:2, ATTACKING:3};
+
+        constructor(x,y, width, height, image)
+        {
+            super(x,y, width, height, image);
+            this.state=Entity.STATE.IDLE;
+            this.dir=Entity.DIRECTION.DOWN;
+
+            this.x_dest=0;
+            this.y_dest=0;
+            this.moving_x=false;
+            this.moving_y=false;
+            this.move_speed= 0.2;
+
+            //a way to store a stae + animation, so we can add animations for states- in the format of an object with {state, animation}
+            this.state_to_anim = new Array();
+        }
+        Draw(ctx, delta_ms)
+        {
+            super.Draw(ctx, delta_ms);
+            this.MoveToDest(delta_ms);
+        }
+        ChangeState(new_state)
+        {
+            if(this.state!=new_state||this.dir!=this.curr_anim.dir)
+            {
+                console.log("changing state to: "+new_state);
+                this.state=new_state;
+                let new_anim = this.GetAnimIndex(this.state);
+                if(new_anim!=-1)
+                {
+                    this.curr_anim=new_anim;
+                    this.animations[this.curr_anim].frame=0;
+                }
+            }
+        }
+        ChangeDirection(direction)
+        {
+            if(this.dir!=direction)
+            {
+                this.dir=direction;
+                //should also flip animation to go left if they weren't
+                if(this.dir==Entity.DIRECTION.LEFT)
+                    this.flip_x=true;
+                else if(this.dir==Entity.DIRECTION.RIGHT)
+                    this.flip_x=false;       
+                    
+                //also force it to update the animation being played if the direction changed:
+                this.ChangeState(this.state);
+            }
+        }
+        SetDestination(x_dest, y_dest)
+        {
+            this.x_dest=x_dest;
+            this.y_dest=y_dest;
+
+            this.moving_x=true;
+            this.moving_y=true;
+
+            this.ChangeState(Entity.STATE.WALKING);
+        }
+
+        MoveToDest(delta_ms)
+        {
+            let was_moving = false;
+
+            if(this.moving_x)
+            {
+                was_moving=true;
+
+                if(this.x_dest>this.x)
+                {
+                    this.ChangeDirection(Entity.DIRECTION.RIGHT);
+
+                    this.x+=this.move_speed*delta_ms;
+                    if(this.x>=this.x_dest)
+                    {
+                        this.x=this.x_dest;
+                        this.moving_x=false;
+                    }
+                }
+                else //x_dest < x -so need to move to the left/ -x
+                {
+                    this.ChangeDirection(Entity.DIRECTION.LEFT);
+
+                    this.x-=this.move_speed*delta_ms;
+                    if(this.x<=this.x_dest)
+                    {
+                        this.x=this.x_dest;
+                        this.moving_x=false;
+                    }
+                }
+            }
+
+            if(this.moving_y)
+            {
+                was_moving=true;
+
+                if(this.y_dest>this.y) // if dest is greater, move him down, where y increases
+                {
+                    this.ChangeDirection(Entity.DIRECTION.DOWN);
+
+                    this.y+=this.move_speed*delta_ms;
+
+                    if(this.y>=this.y_dest)
+                    {
+                        this.y=this.y_dest;
+                        this.moving_y=false;
+                    }
+                }
+                else //y_dest < y -so need to move upward/ -y
+                {
+                    this.ChangeDirection(Entity.DIRECTION.UP);
+
+                    this.y-=this.move_speed*delta_ms;
+
+                    if(this.y<=this.y_dest)
+                    {
+                        this.y=this.y_dest;
+                        this.moving_y=false;
+                    }
+                }
+            }
+            if(was_moving)
+                if(!this.moving_y && !this.moving_x)
+                    this.ChangeState(Entity.STATE.IDLE);
+        }
+
+        AddAnimation(anim, anim_state, direction)
+        {
+            this.animations.push(anim);
+            this.state_to_anim.push({state:anim_state, anim_index:this.animations.length-1, dir:direction});
+        }
+
+        GetAnimIndex(anim_state)
+        {
+            let anim_index=-1;
+            for (let i = 0; i < this.state_to_anim.length; i++) 
+            {
+                let state_to_anim = this.state_to_anim[i];
+
+                if(state_to_anim.state == anim_state)
+                {
+                    if(state_to_anim.dir==this.dir|| state_to_anim.dir==undefined)
+                    {
+                        anim_index= state_to_anim.anim_index;            
+                        break;
+                    }
+                }
+            }
+            return anim_index;
+        }
+        
+    }//end of class Entity
+
+    class Player extends Entity
+    {
+        Draw(ctx, delta_ms)
+        {
+            super.Draw(ctx, delta_ms);
+        }
+    }//end of class Player
+
+    class FlipBookAnimation
+    {
+        //image, size of each frame, where the animation starts, how many frames, scale to draw onscreen, how long to wait in before changing to the next frame
+        constructor(image, width_frame, height_frame,
+                        start_column_x, start_row_y, 
+                        num_frames,
+                        scale,
+                        delay_ms)
+        {
+            this.image=image;
+            this.width_frame=width_frame;
+            this.height_frame=height_frame;
+            this.num_frames=num_frames;
+            this.scale=scale;
+            this.delay_ms=delay_ms;
+
+            this.width_drawn=width_frame*scale;
+            this.height_drawn=height_frame*scale;
+
+            this.timer=0; //timer for switching to next frame
+            this.frame=0; // current frame, going from 0 to num_frames-1
+
+            //offsets to draw with an offset/ centered around the parent object
+            this.offset_x=0;
+            this.offset_y=0;
+
+            //if we don't always want the frame centered- since frames can be wide for other animations (like a wide attack vs narrow idle), we can offset them from center more
+            this.offset_x_extra=0;
+            this.offset_y_extra=0;
+
+            //frames will be x and y positions in the texture atlas, assuming moving from left to right, and possibly wrapping onto new rows
+            this.frames = new Array();
+
+            //start columns from the user will start at 1- but in here we need to start at 0
+            start_column_x--;
+            start_row_y--;
+
+            let x=start_column_x*width_frame;
+            let y=start_row_y*height_frame;
+
+            //figure out the x and y position of each frame
+            while(this.frames.length<this.num_frames)
+            {
+                this.frames.push({x:x, y:y});
+                x+=width_frame;
+
+                if(x+width_frame>image.width)//if the x is now outside the image/ passed the right side of our texture atlas, have it wrap down to the start of the next row
+                {
+                    x=0;
+                    y+=height_frame;
+                }
+            }
+        }
+
+        Draw(ctx, delta_ms, x, y, flip_x)
+        {
+            
+            //if flipped, have to save, then flip the entire canvas, draw, then restore the original canvas drawing
+            if(!flip_x)
+            {
+                debug_boxes.DrawDebugBox(ctx, x+this.offset_x, y+this.offset_y, this.width_drawn, this.height_drawn, 2, "#0000ff");
+
+                ctx.drawImage(this.image, 
+                            this.frames[this.frame].x, this.frames[this.frame].y, 
+                            this.width_frame, this.height_frame,
+                            x+this.offset_x+this.offset_x_extra, y+this.offset_y+this.offset_y_extra,
+                            this.width_drawn, this.height_drawn);
+            }
+            else
+            {
+                ctx.save();
+                ctx.scale(-1, 1);
+
+                debug_boxes.DrawDebugBox(ctx, -x-(this.width_drawn+this.offset_x), y, this.width_drawn, this.height_drawn, 2, "#0000ff");
+
+                ctx.drawImage(this.image, 
+                            this.frames[this.frame].x, this.frames[this.frame].y, 
+                            this.width_frame, this.height_frame,
+                            -(x+this.offset_x-this.offset_x_extra+this.width_drawn), y+this.offset_y+this.offset_y_extra,
+                            this.width_drawn, this.height_drawn);
+
+                ctx.restore();
+            }
+
+            this.timer+=delta_ms;
+            // console.log("draw animation: this.timer: "+this.timer+", this.delay_ms: "+ this.delay_ms);
+
+            if(this.timer>this.delay_ms)
+            {
+                this.timer=0;
+
+                this.frame++;
+                if(this.frame==this.num_frames)//the maximum frame should be 1 less than the number of frames, since frames start at 0
+                    this.frame=0;
+            }        
+        }
+        CenterSize(parent_width, parent_height)
+        {
+            this.offset_x= parent_width*.5-this.width_drawn*.5;
+            this.offset_y= parent_height*.5-this.height_drawn*.5;
+        }
+    }//end of class FlipBookAnimation
+
+
+
+    
+
+
+
+
+
+
+
+
+    function ClearCanvas(ctx, background_color)
+    {
+        ctx.fillStyle = background_color;
+        ctx.fillRect(0, 0, my_canvas.width, my_canvas.height);
+    }
+    function UpdateGame(delta_ms)
+    {
+        // timmy.x_pos=timmy.x_pos+5;
+        // timmy.x_pos=timmy.x_pos+delta_ms*0.05206;
+
+        ClearCanvas(ctx, "rgba(0,0,255,255)"); //clears the canvas, so we don't get "ghosting"
+
+        for (let i=0; i < tiles.length; i++)
+        {
+            tiles[i].Draw(ctx);
+        }
+
+
+
+        if(sprites!=undefined)
+        {
+            for (let i = 0; i < sprites.length; i++) 
+            {
+                const sprite = sprites[i];
+                
+                //draw a debug box in red for each sprite at its x and y, and width and height  
+                debug_boxes.DrawDebugBox(ctx, sprite.x, sprite.y, sprite.width, sprite.height, 2, "#FF0000");
+
+                sprite.Draw(ctx, delta_ms);
+            }
+        }
+
+    }
+
+    function Update(time_ms)
+    {   	 
+        let frame_delta_ms = time_ms - last_time_ms; // #2 going to find the delta/difference in time between the last frame (initially 0) and the current time
+        let delta_s = frame_delta_ms / 1000; //since time is in ms (1 /1000 s), to convert to seconds, divide by 1000, exp: 2000ms/ 1000 = 2s
+        let fps= 1 / delta_s; //we can convert from seconds/ frame (delta_s) to frames/ second by flipping it dividing 1 by it- 1/ (seconds/frame) = frame/ second= fps
+
+        frame_delta_ms = frame_delta_ms.toFixed(2); //going to round to just 2 decimal places using toFixed(2)
+        
+        //so.... toFixed which rounds a number, returns a string instead of a number.... so have to now turn it back into a number... JavaScript...
+        frame_delta_ms = parseFloat(frame_delta_ms);
+
+        fps = fps.toFixed(2);
+
+        fps_txt_element.innerHTML=Math.round(fps);
+        // console.log("Update: delta time: "+frame_delta_ms+", fps: "+fps);
+
+        Resize();
+        UpdateGame(frame_delta_ms);
+
+        last_time_ms = time_ms;
+        // setTimeout(function(){window.requestAnimationFrame(Update)}, 100 );
+        window.requestAnimationFrame(Update);
+    }
+
+    function Resize()
+    {
+        if(window.innerWidth != last_width || window.innerHeight != last_height)
+        {
+            my_canvas.setAttribute('width', window.innerWidth);
+            my_canvas.setAttribute('height', window.innerHeight);
+
+            last_width=window.innerWidth;
+            last_height=window.innerHeight;
+        }
+    }
+
+    function MoveMyPlayer(x_dest, y_dest)
+    {
+        //move my_player to the destination clicked
+        console.log("Moving my player to destination: x: "+x_dest+", y: "+y_dest)
+        my_player.SetDestination(x_dest, y_dest);
+    }
+
+    function MouseUp(event)
+    {
+        let x_dest = event.clientX;
+        let y_dest = event.clientY;
+        console.log("Mouse up at: x: "+x_dest+", y: "+y_dest);
+        MoveMyPlayer(x_dest, y_dest)
+    }
+
+    function TouchUp(event)
+    {
+        let x_dest = event.changedTouches[0].clientX;
+        let y_dest = event.changedTouches[0].clientY;
+        console.log("Touch up at: x: "+x_dest+", y: "+y_dest);
+        MoveMyPlayer(x_dest, y_dest)
+    }
+
+    function SetupInput()
+    {
+        my_canvas.addEventListener("mouseup", MouseUp);
+        my_canvas.addEventListener("touchend", TouchUp);
+    }
+
+
+    let fps_txt_element = document.getElementById("fps");
+    let last_time_ms = 0; 
+    window.requestAnimationFrame(Update);
+
+
+    let my_canvas = document.querySelector("canvas");
+    let draw_context = my_canvas.getContext("2d");
+    let ctx = draw_context;
+
+    //change the width and height of the canvas to be the same size as the window
+    my_canvas.setAttribute('width', window.innerWidth);
+    my_canvas.setAttribute('height', window.innerHeight);
+
+
+    let last_width=window.innerWidth;
+    let last_height=window.innerHeight;
+
+    let asset_loader = new AssetLoader();
+    asset_loader.AddImageToQueue("dirt", "assets/imgs/dirt.jpg");
+    asset_loader.AddImageToQueue("stone", "assets/imgs/stone.jpg");
+    asset_loader.AddImageToQueue("water", "assets/imgs/water.jpg");
+    asset_loader.AddImageToQueue("grass", "assets/imgs/grass.jpg");
+    asset_loader.AddImageToQueue("bush", "assets/imgs/bush.jpg");
+
+
+    asset_loader.AddImageToQueue("woodcutter_idle", "assets/imgs/Woodcutter_idle.png");
+    asset_loader.AddImageToQueue("woodcutter_run", "assets/imgs/Woodcutter_run.png");
+    asset_loader.AddImageToQueue("woodcutter_attack1", "assets/imgs/Woodcutter_attack1.png");
+
+    asset_loader.AddImageToQueue("adventurer", "assets/imgs/adventurer-v1.5-Sheet.png");
+
+
+    asset_loader.LoadImages(AllAssetsLoaded);
+
+    let sprites = new Array();
+    let my_player;
+    let an_entity;
+    let debug_boxes = new DebugBox();
+    function AllAssetsLoaded()
+    {
+        CreateTileMap();
+
+        my_player = new Player(0,0,Tile.width, Tile.height);
+        
+        let scale_woodcutter = my_player.height / 48;
+        let woodcutter_idle = new FlipBookAnimation(asset_loader.GetImage("woodcutter_idle").image, 48, 48, 1,1, 4, scale_woodcutter, 100);
+        let woodcutter_run = new FlipBookAnimation(asset_loader.GetImage("woodcutter_run").image, 48, 48, 1,1, 6, scale_woodcutter, 100);
+        let woodcutter_attack1 = new FlipBookAnimation(asset_loader.GetImage("woodcutter_attack1").image, 48, 48, 1,1, 6, scale_woodcutter, 100);
+
+        woodcutter_idle.CenterSize(my_player.width, my_player.height);
+        woodcutter_run.CenterSize(my_player.width, my_player.height);
+        woodcutter_attack1.CenterSize(my_player.width, my_player.height);
+        woodcutter_idle.offset_x_extra=12;
+        woodcutter_run.offset_x_extra=10;
+
+        my_player.AddAnimation(woodcutter_idle, Entity.STATE.IDLE);
+        my_player.AddAnimation(woodcutter_run, Entity.STATE.WALKING);
+        my_player.AddAnimation(woodcutter_attack1, Entity.STATE.ATTACKING);
+
+        my_player.ChangeState(Entity.STATE.ATTACKING);
+
+
+        an_entity = new Entity(Tile.width*3,Tile.width*2,Tile.width, Tile.height);
+
+        let scale_adventurer = my_player.height / 37;
+        let adventurer_idle = new FlipBookAnimation(asset_loader.GetImage("adventurer").image, 50, 37, 1,1, 4, scale_adventurer, 100);
+        let adventurer_run = new FlipBookAnimation(asset_loader.GetImage("adventurer").image, 50, 37, 2,2, 5, scale_adventurer, 100);
+        let adventurer_attack1 = new FlipBookAnimation(asset_loader.GetImage("adventurer").image, 50, 37, 6,7, 6, scale_adventurer, 100);
+
+        adventurer_idle.CenterSize(my_player.width, my_player.height);
+        adventurer_run.CenterSize(my_player.width, my_player.height);
+        adventurer_attack1.CenterSize(my_player.width, my_player.height);
+
+        an_entity.AddAnimation(adventurer_idle, Entity.STATE.IDLE);
+        an_entity.AddAnimation(adventurer_run, Entity.STATE.WALKING);
+
+        an_entity.ChangeState(Entity.STATE.WALKING);
+
+        
+        sprites.push(my_player);
+        sprites.push(an_entity);
+
+        SetupInput();
+    }
+
+
+    let tiles = new Array();
+    function CreateTileMap()
+    {
+        // let tile_creator = new TileImageCreator();
+        let tile_images = new Array(asset_loader.GetImage("dirt"), 
+                            asset_loader.GetImage("stone"),
+                            asset_loader.GetImage("water"),
+                            asset_loader.GetImage("grass"),
+                            asset_loader.GetImage("bush"),
+                            );
+
+        let level = new Level(tile_images);
+
+        let screen_width_default=1366;
+        let screen_height_default=768;
+
+        let num_tiles_x = Math.round(screen_width_default*2 / Tile.width);
+        let num_tiles_y = Math.round(screen_height_default*2 / Tile.height);
+
+        for(let x= 0;x<num_tiles_x; x++)
+        {
+            for(let y= 0;y<num_tiles_y; y++)
+            {
+                let type = Math.floor(Math.random()*(Tile.LAST_TYPE+1));//need +1 or doesn't include the highest number/ 
+
+                // tiles.push(new Tile(x*tile_creator.width_tile, y*tile_creator.height_tile, type, tile_creator.GetTileImage(type)));
+                tiles.push(new Tile(x*Tile.width, y*Tile.height, type, level.tile_images[type].image));
+            }
+        }
+    }
+
+
+    // let timmy = new Friend("Timmy Smith", 16, true, "rgb(0,0,255)", "rgb(209, 181, 140)", "rgb(125, 60, 34)", 20, 20);
+    // SetupInput();
+
+// timmy.DrawFriend();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+    <h1>This is HTML on my webpage!</h1>
+
+    <script>
+        class Friend
+        {
+            constructor(their_name, their_age, their_loves_spinach)
+            {
+                this.name = their_name;
+                this.age = their_age;
+                this.loves_spinach = their_loves_spinach;
+                console.log("A friend was created, with name: "+this.name+", age: "+this.age+", and loves spinach: "+this.loves_spinach);
+            }
+            SayHi()
+            {
+                console.log("Hi, my name is "+this.name +", my age is: "+this.age+", and do I love spinach? "+this.loves_spinach+".");
+            }
+        }
+
+        let my_new_friend = new Friend("Steve Guttenberg", 12, false);
+        let my_new_friend2 = new Friend("Zhanna Matzaball", 36, true);
+        let my_new_best_friend = new Friend("Jerriah N", 1, false);
+
+        my_new_friend.SayHi();
+        my_new_friend2.SayHi();
+        my_new_best_friend.SayHi();
+    </script>
+
+    
+    
+    
+</body>
+</html>

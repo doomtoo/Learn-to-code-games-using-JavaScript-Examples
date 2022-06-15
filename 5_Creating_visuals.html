@@ -1,0 +1,89 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <p>This is some text that I created on a webpage</p>
+        <canvas style="border:1px solid green"></canvas>
+
+        <script>
+            class Friend
+            {
+                constructor(their_name, their_age, their_loves_spinach, their_eye_color, their_skin_color, their_hair_color, their_x_pos, their_y_pos)
+                {
+                    this.name = their_name;
+                    this.age = their_age;
+                    this.loves_spinach = their_loves_spinach;
+
+                    this.eye_color = their_eye_color;
+                    this.skin_color = their_skin_color;
+                    this.hair_color = their_hair_color;
+
+                    this.x_pos = their_x_pos;
+                    this.y_pos = their_y_pos
+
+                    console.log("A friend was created, with name: "+this.name+", age: "+this.age+", and loves spinach: "+this.loves_spinach);
+                    console.log("And some facts about them, eye color: "+this.eye_color+", skin color: "+this.skin_color+", hair color: "+this.hair_color+", x and y: "+this.x_pos+", "+this.y_pos);
+
+                    this.DrawFriend();
+                }
+                SayHi()
+                {
+                    console.log("Hi, my name is "+this.name +", my age is: "+this.age+", and do I love spinach? "+this.loves_spinach+".");
+                }
+                DrawFriend()
+                {
+                    //this is where we will start drawing our friend
+
+                    //---------------- get the canvas stuff we need to be able to draw ----------------
+                    let my_canvas = document.querySelector("canvas");
+                    let draw_context = my_canvas.getContext("2d");
+                    let ctx = draw_context;
+
+                    //---------------- draw the head ----------------
+
+                    //define width and height of the head
+                    let width_head = 50;
+                    let height_head = 60;
+
+                    ctx.fillStyle = this.skin_color;
+                    ctx.fillRect(this.x_pos, this.y_pos, width_head, height_head);
+
+                    //---------------- draw the eyes ----------------
+
+                    //define width and height of the eyes
+                    let width_eyes = 10;
+                    let height_eyes = 15;
+
+                    //set the fill style:
+                    ctx.fillStyle = this.eye_color;
+
+                    //define how offset the eyes should be from the left and right side of the head
+                    let eye_x_offset = 10;
+
+                    //define how offset the eyes should be from the top of the head
+                    let eye_y_offset = 15;
+
+                    //--draw the left eye, left corner, top , width and height --
+                    ctx.fillRect(this.x_pos+eye_x_offset, this.y_pos+eye_y_offset, width_eyes, height_eyes);
+
+                    //--draw the right eye--
+                    //a lot more complicated- have to find right side of head (x_pos+width_head), then minus out the width of eye + x offset of eye to position the left side of the eye away from the right side of the head
+
+                    let right_side_of_head=this.x_pos+width_head
+                    let right_eye_x_pos = right_side_of_head - width_eyes-eye_x_offset;
+
+                    ctx.fillRect(right_eye_x_pos, this.y_pos+eye_y_offset , width_eyes, height_eyes);
+                }
+
+            }
+            //create 3 new friends:
+            //the parameters we are passing are: (their_name, their_age, their_loves_spinach, their_eye_color, their_skin_color, their_hair_color, their_x_pos, their_y_pos)
+
+            let timmy = new Friend("Timmy Smith", 16, true, "rgb(0,0,255)", "rgb(209, 181, 140)", "rgb(125, 60, 34)", 20, 20);
+            let jackie = new Friend("Jackie O", 42, true, "rgb(0,255,0)", "rgb(245, 215, 171)", "rgb(110, 91, 91)", 100, 50);
+            let shaun = new Friend("Shaun W", 30, true, "rgb(31, 26, 22)", "rgb(79, 48, 23)", "rgb(5, 2, 0)", 200, 10);
+            let megan = new Friend("Megan Rocky", 16, true, "rgb(0,0,0)", "rgb(209, 181, 140)", "rgb(0, 60, 0)", 260, 120);
+        </script>
+
+    </body>
+</html>
